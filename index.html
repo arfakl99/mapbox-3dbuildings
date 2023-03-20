@@ -54,6 +54,43 @@ body { margin: 0; padding: 0; }
   }
 });
 
+map.on('click', 'room-extrusion', function(e) {
+  // Get the id of the clicked building feature
+  var featureId = e.features[0].id;
+  
+  // Get the coordinates of the clicked point
+  var coordinates = e.lngLat;
+  
+  // Highlight the clicked building by changing the fill-extrusion-opacity property
+  map.setPaintProperty('room-extrusion', 'fill-extrusion-opacity', [
+    'case',
+    ['==', ['id'], featureId],
+    1,
+    0.2
+  ]);
+
+  
+  // Get the properties of the clicked building feature
+  var properties = e.features[0].properties;
+  
+  // Create a popup
+  new mapboxgl.Popup()
+    .setLngLat(coordinates)
+    .setHTML('<h3>' + properties.name + '</h3><p>' + properties.address + '</p>')
+    .addTo(map);
+});
+
+// Change the cursor to a pointer when hovering over a building
+map.on('mouseenter', 'room-extrusion', function() {
+  map.getCanvas().style.cursor = 'pointer';
+});
+
+// Change the cursor back to the default when no longer hovering over a building
+map.on('mouseleave', 'room-extrusion', function() {
+  map.getCanvas().style.cursor = '';
+});
+
+
     });
 </script>
 
