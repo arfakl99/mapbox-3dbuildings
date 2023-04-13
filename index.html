@@ -19,7 +19,7 @@ body { margin: 0; padding: 0; }
         container: 'map',
         
         style: 'mapbox://styles/mapbox/streets-v12',
-        center: [-87.61694, 41.86625],
+        center: [73.05733341447535, 33.7227287530076],
         zoom: 15.99,
         pitch: 40,
         bearing: 20,
@@ -27,68 +27,85 @@ body { margin: 0; padding: 0; }
     });
 
     map.on('load', () => {
-        map.addSource('floorplan', {
+        map.addSource('building', {
             'type': 'geojson',
           
-            'data': 'map.geojson'
+            'data': 'isb-data.geojson'
         });
         map.addLayer({
   'id': 'room-extrusion',
   'type': 'fill-extrusion',
-  'source': 'floorplan',
+  'source': 'building',
   'paint': {
     
     'fill-extrusion-color': [
-      'case',
-      ['==', ['get', 'color'], 'blue'],
-      'blue',
-      'red',
+  'case',
+  ['==', ['get', 'highlight'], true],
+  'red',
+  ['==', ['get', 'color'], 'blue'],
+  'blue',
+  '#808080'
+],
       
-    ],
-    // Set a fixed height for all the extrusions.
-    'fill-extrusion-height': 50,
-    // Get `fill-extrusion-base` from the source `base_height` property.
+    'fill-extrusion-height': ['get', 'height'],
+    
     'fill-extrusion-base': ['get', 'base_height'],
-    // Make extrusions slightly opaque to see through indoor walls.
-    'fill-extrusion-opacity': 0.5
+
+    'fill-extrusion-opacity': 0.9
   }
 });
 
+var featureId;
 map.on('click', 'room-extrusion', function(e) {
-  // Get the id of the clicked building feature
   var featureId = e.features[0].id;
-  
-  // Get the coordinates of the clicked point
   var coordinates = e.lngLat;
-  
-  // Highlight the clicked building by changing the fill-extrusion-opacity property
-  map.setPaintProperty('room-extrusion', 'fill-extrusion-opacity', [
-    'case',
-    ['==', ['id'], featureId],
-    1,
-    0.2
-  ]);
+  map.setFeatureState(
+    { source: 'building', id: featureId },
+    { hover: true }
+  );
 
-  
-  // Get the properties of the clicked building feature
   var properties = e.features[0].properties;
-  
-  // Create a popup
   new mapboxgl.Popup()
     .setLngLat(coordinates)
-    .setHTML('<h3>' + properties.name + '</h3><p>' + properties.address + '</p>')
+    .setHTML('<h4>' + properties.name + '</h4><p>' + properties.story + '</p><p>' + properties.floor + '</p> ')
     .addTo(map);
 });
 
-// Change the cursor to a pointer when hovering over a building
-map.on('mouseenter', 'room-extrusion', function() {
-  map.getCanvas().style.cursor = 'pointer';
-});
+  var hoveredStateId = null;
+  map.on('mousemove', 'room-extrusion', function(e) {
+    if (e.features.length > 0) {
+      if (hoveredStateId) {
+        map.setFeatureState(
+          { source: 'building', id: hoveredStateId },
+          { hover: false }
+        );
+      }
+      hoveredStateId = e.features[0].id;
+      map.setFeatureState(
+        { source: 'building', id: hoveredStateId },
+        { hover: true }
+      );
+    }
+  });
 
-// Change the cursor back to the default when no longer hovering over a building
-map.on('mouseleave', 'room-extrusion', function() {
+  map.on('mouseleave', 'room-extrusion', function() {
+    if (hoveredStateId) {
+      map.setFeatureState(
+        { source: 'building', id: hoveredStateId },
+        { hover: false }
+      );
+    }
+    hoveredStateId = null;
+  });
+  
+  
+
+  map.on('mouseenter', 'room-extrusion', function() {
+  map.getCanvas().style.cursor = 'pointer';
+  });
+  map.on('mouseleave', 'room-extrusion', function() {
   map.getCanvas().style.cursor = '';
-});
+  });
 
 
     });
